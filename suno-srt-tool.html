@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suno SRT 字幕下載工具 — 安裝指南</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: #0c0c0c;
+  color: #d4d0ca;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(180,40,40,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(120,30,30,0.04) 0%, transparent 50%);
+}
+.container {
+  position: relative; z-index: 1;
+  max-width: 800px; margin: 0 auto; padding: 60px 32px 80px;
+}
+h1 {
+  font-size: 2.8rem; font-weight: 900; color: #f0ece4;
+  letter-spacing: 0.08em; margin-bottom: 8px;
+}
+h2 {
+  font-size: 1.8rem; font-weight: 700; color: #e8e4dc;
+  letter-spacing: 0.06em; margin-top: 48px; margin-bottom: 16px;
+}
+h3 {
+  font-size: 1.3rem; font-weight: 500; color: #d45454;
+  letter-spacing: 0.05em; margin-bottom: 12px;
+}
+p { font-size: 1.1rem; line-height: 1.8; color: #9a968e; letter-spacing: 0.03em; margin-bottom: 12px; }
+.subtitle { font-size: 1.2rem; color: #5c5a56; letter-spacing: 0.06em; margin-bottom: 40px; }
+.divider { width: 100%; height: 1px; background: rgba(255,255,255,.06); margin: 32px 0; }
+
+/* Bookmarklet button */
+.bookmarklet-area {
+  text-align: center;
+  padding: 48px 32px;
+  border: 1px solid rgba(212,84,84,.15);
+  background: rgba(212,84,84,.03);
+  margin: 32px 0;
+}
+.bookmarklet-link {
+  display: inline-block;
+  background: #d45454;
+  color: #fff;
+  font-size: 1.3rem; font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 16px 40px;
+  text-decoration: none;
+  cursor: grab;
+  transition: background .3s, transform .2s;
+  user-select: none;
+}
+.bookmarklet-link:hover {
+  background: #e06060;
+  transform: translateY(-2px);
+}
+.bookmarklet-link:active { cursor: grabbing; }
+.drag-hint {
+  font-size: .9rem; color: #5c5a56; margin-top: 16px;
+  letter-spacing: 0.05em;
+}
+
+/* Steps */
+.steps { list-style: none; padding: 0; margin: 20px 0; counter-reset: s; }
+.steps li {
+  counter-increment: s; padding: 16px 0 16px 52px; position: relative;
+  font-size: 1.1rem; line-height: 1.7; color: #b8b4ac;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  letter-spacing: 0.03em;
+}
+.steps li:last-child { border-bottom: none; }
+.steps li::before {
+  content: counter(s);
+  position: absolute; left: 0; top: 18px;
+  width: 34px; height: 34px;
+  border: 1px solid rgba(212,84,84,.25); color: #d45454;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 500; font-size: .95rem;
+}
+
+/* Keyboard shortcut */
+kbd {
+  display: inline-block;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  padding: 2px 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: .9rem; color: #d4d0ca;
+  letter-spacing: 0.05em;
+}
+
+/* Platform tabs */
+.tabs { display: flex; gap: 0; margin: 32px 0 0; }
+.tab {
+  flex: 1; text-align: center;
+  padding: 14px 0;
+  font-size: 1rem; font-weight: 500;
+  letter-spacing: 0.1em;
+  border: 1px solid rgba(255,255,255,.06);
+  background: transparent;
+  color: #5c5a56;
+  cursor: pointer;
+  transition: all .3s;
+}
+.tab.active {
+  background: rgba(212,84,84,.08);
+  border-color: rgba(212,84,84,.2);
+  color: #d45454;
+}
+.tab:hover:not(.active) { color: #9a968e; }
+.tab-content { display: none; padding: 24px 0; }
+.tab-content.active { display: block; }
+
+/* Warn / Tip */
+.tip {
+  padding: 14px 20px; margin: 16px 0;
+  font-size: 1rem; line-height: 1.7;
+  border-left: 2px solid rgba(109,171,122,.4);
+  color: #7a9a82;
+  background: rgba(109,171,122,.03);
+  letter-spacing: 0.02em;
+}
+.warn {
+  padding: 14px 20px; margin: 16px 0;
+  font-size: 1rem; line-height: 1.7;
+  border-left: 2px solid rgba(212,84,84,.4);
+  color: #b08080;
+  background: rgba(212,84,84,.03);
+  letter-spacing: 0.02em;
+}
+
+/* Screenshot placeholder */
+.screenshot {
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  padding: 40px; text-align: center;
+  color: #5c5a56; font-size: .9rem;
+  margin: 16px 0;
+  letter-spacing: 0.05em;
+}
+
+/* Alternative method */
+.alt-method {
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  padding: 24px;
+  margin: 20px 0;
+}
+.alt-method h3 { margin-bottom: 8px; }
+.code-block {
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.05);
+  border-left: 2px solid rgba(212,84,84,.3);
+  padding: 16px 20px;
+  margin: 12px 0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: .85rem; line-height: 1.6;
+  color: #b0aca4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+  letter-spacing: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 60px;
+  font-size: .85rem;
+  color: #3a3834;
+  letter-spacing: 0.06em;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Suno SRT 字幕下載工具</h1>
+<p class="subtitle">一鍵從 Suno 歌曲頁面匯出帶時間軸的 .srt 字幕檔</p>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════
+     方法一：書籤列按鈕（推薦）
+     ═══════════════════════════════════════════ -->
+<h2>方法一：書籤列按鈕（推薦）</h2>
+<p>把下方按鈕<strong>拖曳</strong>到你的 Chrome 書籤列，就完成安裝了！</p>
+
+<div class="bookmarklet-area">
+  <!-- BOOKMARKLET -->
+  <a class="bookmarklet-link" href="javascript:void(function(){const m=location.href.match(/\/song\/([^/?#]+)/);if(!m){alert('請先打開一首 Suno 歌曲頁面！\n網址應該像：suno.com/song/xxxxx');return}const id=m[1];const tk=('; '+document.cookie).split('; __session=').pop().split(';')[0];if(!tk){alert('找不到登入資訊，請先登入 Suno！');return}const btn=document.createElement('div');btn.style.cssText='position:fixed;top:20px;right:20px;z-index:99999;background:%23222;color:%23fff;padding:16px 24px;border-radius:8px;font:16px sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.5)';btn.textContent='正在取得字幕...';document.body.appendChild(btn);fetch('https://studio-api.prod.suno.com/api/gen/'+id+'/aligned_lyrics/v2/',{headers:{'Authorization':'Bearer '+tk}}).then(r=>r.json()).then(d=>{const lines=d.aligned_lyrics||d.aligned_words;if(!lines||!lines.length){btn.textContent='此歌曲沒有字幕資料';setTimeout(()=>btn.remove(),3000);return}let srt='';lines.forEach((l,i)=>{const fmt=s=>{const dt=new Date(s*1000);return String(dt.getUTCHours()).padStart(2,'0')+':'+String(dt.getUTCMinutes()).padStart(2,'0')+':'+String(dt.getUTCSeconds()).padStart(2,'0')+','+String(dt.getUTCMilliseconds()).padStart(3,'0')};srt+=(i+1)+'\n'+fmt(l.start_s)+' --> '+fmt(l.end_s)+'\n'+(l.text||l.word).replace(/\[.*?\]/g,'').trim()+'\n\n'});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([srt],{type:'text/plain'}));a.download=document.title.replace(/[^\w\u4e00-\u9fff]/g,'_').substring(0,50)+'.srt';a.click();URL.revokeObjectURL(a.href);btn.textContent='字幕下載完成！';btn.style.background='%23227744';setTimeout(()=>btn.remove(),2500)}).catch(e=>{btn.textContent='下載失敗：'+e.message;btn.style.background='%23993333';setTimeout(()=>btn.remove(),4000)})})();">下載 Suno SRT 字幕</a>
+  <p class="drag-hint">把這個按鈕拖到書籤列即可</p>
+</div>
+
+<div class="warn">如果看不到書籤列？請先按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>（Windows）或 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>（Mac）顯示書籤列。</div>
+
+<!-- 平台切換 -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('win')">Windows 版教學</div>
+  <div class="tab" onclick="switchTab('mac')">Mac 版教學</div>
+</div>
+
+<!-- Windows -->
+<div class="tab-content active" id="tab-win">
+  <h3>Windows + Chrome 安裝步驟</h3>
+  <ol class="steps">
+    <li>開啟 Chrome 瀏覽器</li>
+    <li>按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> 顯示書籤列（如果還沒顯示的話）</li>
+    <li>用滑鼠<strong>左鍵按住</strong>上方紅色的「下載 Suno SRT 字幕」按鈕</li>
+    <li><strong>拖曳</strong>到書籤列上，放開滑鼠</li>
+    <li>書籤列上會出現「下載 Suno SRT 字幕」— 安裝完成！</li>
+  </ol>
+
+  <h3 style="margin-top:28px;">使用方式</h3>
+  <ol class="steps">
+    <li>到 <a href="https://suno.com" target="_blank" style="color:#d45454; border-bottom:1px solid rgba(212,84,84,.3);">suno.com</a> 登入你的帳號</li>
+    <li>打開你想下載字幕的<strong>歌曲頁面</strong>（網址會像 suno.com/song/xxxxx）</li>
+    <li>點擊書籤列上的「下載 Suno SRT 字幕」</li>
+    <li>等幾秒後會自動下載 <strong>.srt 檔案</strong></li>
+  </ol>
+
+  <div class="tip">下載的 .srt 檔案可以直接拖進 Vizzy、CapCut、Premiere 等影片編輯工具當字幕使用。</div>
+</div>
+
+<!-- Mac -->
+<div class="tab-content" id="tab-mac">
+  <h3>Mac + Chrome 安裝步驟</h3>
+  <ol class="steps">
+    <li>開啟 Chrome 瀏覽器</li>
+    <li>按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> 顯示書籤列（如果還沒顯示的話）</li>
+    <li>用滑鼠或觸控板<strong>按住</strong>上方紅色的「下載 Suno SRT 字幕」按鈕</li>
+    <li><strong>拖曳</strong>到書籤列上，放開</li>
+    <li>書籤列上會出現「下載 Suno SRT 字幕」— 安裝完成！</li>
+  </ol>
+
+  <h3 style="margin-top:28px;">使用方式</h3>
+  <ol class="steps">
+    <li>到 <a href="https://suno.com" target="_blank" style="color:#d45454; border-bottom:1px solid rgba(212,84,84,.3);">suno.com</a> 登入你的帳號</li>
+    <li>打開你想下載字幕的<strong>歌曲頁面</strong>（網址會像 suno.com/song/xxxxx）</li>
+    <li>點擊書籤列上的「下載 Suno SRT 字幕」</li>
+    <li>等幾秒後會自動下載 <strong>.srt 檔案</strong></li>
+  </ol>
+
+  <div class="tip">下載的 .srt 檔案可以直接拖進 Vizzy、CapCut、Premiere 等影片編輯工具當字幕使用。</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════
+     方法二：手動新增書籤
+     ═══════════════════════════════════════════ -->
+<h2>方法二：手動新增書籤</h2>
+<p>如果拖曳不方便，也可以手動建立書籤。</p>
+
+<div class="tabs" style="margin-top:20px;">
+  <div class="tab active" onclick="switchTab2('win2')">Windows</div>
+  <div class="tab" onclick="switchTab2('mac2')">Mac</div>
+</div>
+
+<div class="tab-content active" id="tab-win2">
+  <ol class="steps">
+    <li>在書籤列空白處<strong>按右鍵</strong> → 選擇「新增書籤」</li>
+    <li>名稱填入：<strong>下載 Suno SRT 字幕</strong></li>
+    <li>網址欄位貼上下方的程式碼（全部複製）</li>
+    <li>點擊「儲存」</li>
+  </ol>
+</div>
+<div class="tab-content" id="tab-mac2">
+  <ol class="steps">
+    <li>在書籤列空白處<strong>按住 Control + 點擊</strong>（或雙指點觸控板）→ 選擇「新增書籤」</li>
+    <li>名稱填入：<strong>下載 Suno SRT 字幕</strong></li>
+    <li>網址欄位貼上下方的程式碼（全部複製）</li>
+    <li>點擊「儲存」</li>
+  </ol>
+</div>
+
+<p style="margin-top:16px;">複製以下程式碼：</p>
+<div class="code-block" id="bookmarklet-code">javascript:void(function(){const m=location.href.match(/\/song\/([^/?#]+)/);if(!m){alert('請先打開一首 Suno 歌曲頁面！\n網址應該像：suno.com/song/xxxxx');return}const id=m[1];const tk=('; '+document.cookie).split('; __session=').pop().split(';')[0];if(!tk){alert('找不到登入資訊，請先登入 Suno！');return}const btn=document.createElement('div');btn.style.cssText='position:fixed;top:20px;right:20px;z-index:99999;background:%23222;color:%23fff;padding:16px 24px;border-radius:8px;font:16px sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.5)';btn.textContent='正在取得字幕...';document.body.appendChild(btn);fetch('https://studio-api.prod.suno.com/api/gen/'+id+'/aligned_lyrics/v2/',{headers:{'Authorization':'Bearer '+tk}}).then(r=>r.json()).then(d=>{const lines=d.aligned_lyrics||d.aligned_words;if(!lines||!lines.length){btn.textContent='此歌曲沒有字幕資料';setTimeout(()=>btn.remove(),3000);return}let srt='';lines.forEach((l,i)=>{const fmt=s=>{const dt=new Date(s*1000);return String(dt.getUTCHours()).padStart(2,'0')+':'+String(dt.getUTCMinutes()).padStart(2,'0')+':'+String(dt.getUTCSeconds()).padStart(2,'0')+','+String(dt.getUTCMilliseconds()).padStart(3,'0')};srt+=(i+1)+'\n'+fmt(l.start_s)+' --> '+fmt(l.end_s)+'\n'+(l.text||l.word).replace(/\[.*?\]/g,'').trim()+'\n\n'});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([srt],{type:'text/plain'}));a.download=document.title.replace(/[^\w\u4e00-\u9fff]/g,'_').substring(0,50)+'.srt';a.click();URL.revokeObjectURL(a.href);btn.textContent='字幕下載完成！';btn.style.background='%23227744';setTimeout(()=>btn.remove(),2500)}).catch(e=>{btn.textContent='下載失敗：'+e.message;btn.style.background='%23993333';setTimeout(()=>btn.remove(),4000)})})()</div>
+<button onclick="copyCode()" id="copy-btn" style="
+  margin-top:12px; padding:10px 24px;
+  background:transparent; color:#d45454;
+  border:1px solid rgba(212,84,84,.25);
+  font-size:.95rem; letter-spacing:0.06em;
+  cursor:pointer; transition:all .3s;
+">複製程式碼</button>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════
+     常見問題
+     ═══════════════════════════════════════════ -->
+<h2>常見問題</h2>
+
+<div class="alt-method">
+  <h3>Q: 點了沒反應？</h3>
+  <p>請確認你已經<strong>登入 Suno</strong>，而且目前頁面是某首歌的頁面（網址包含 /song/）。</p>
+</div>
+
+<div class="alt-method">
+  <h3>Q: 顯示「此歌曲沒有字幕資料」？</h3>
+  <p>表示這首歌還沒有生成對齊歌詞。通常<strong>純演奏曲</strong>（Instrumental）不會有字幕。有歌詞的歌曲需要在生成完成後稍等片刻才有字幕資料。</p>
+</div>
+
+<div class="alt-method">
+  <h3>Q: .srt 檔案可以做什麼？</h3>
+  <p>SRT 是標準字幕格式，可以用在：</p>
+  <ul style="padding-left:20px; margin-top:8px;">
+    <li style="color:#9a968e; padding:4px 0;">Vizzy.io — 匯入當字幕</li>
+    <li style="color:#9a968e; padding:4px 0;">CapCut（剪映）— 匯入字幕軌</li>
+    <li style="color:#9a968e; padding:4px 0;">YouTube — 上傳影片時手動上傳字幕</li>
+    <li style="color:#9a968e; padding:4px 0;">Premiere Pro / DaVinci Resolve — 專業剪輯</li>
+  </ul>
+</div>
+
+<div class="footer">
+  <p>工具基於 Suno 公開 API，僅供學習用途</p>
+</div>
+
+</div><!-- /container -->
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('#tab-win, #tab-mac').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.tabs')[0].children;
+  Array.from(tabs).forEach(t => t.classList.remove('active'));
+  if (id === 'win') tabs[0].classList.add('active');
+  else tabs[1].classList.add('active');
+}
+function switchTab2(id) {
+  document.querySelectorAll('#tab-win2, #tab-mac2').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.tabs')[1].children;
+  Array.from(tabs).forEach(t => t.classList.remove('active'));
+  if (id === 'win2') tabs[0].classList.add('active');
+  else tabs[1].classList.add('active');
+}
+function copyCode() {
+  const code = document.getElementById('bookmarklet-code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '已複製！';
+    btn.style.borderColor = 'rgba(109,171,122,.4)';
+    btn.style.color = '#6dab7a';
+    setTimeout(() => {
+      btn.textContent = '複製程式碼';
+      btn.style.borderColor = 'rgba(212,84,84,.25)';
+      btn.style.color = '#d45454';
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>
