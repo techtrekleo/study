@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用 AI 做出一支 YouTube 影片</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   RESET & BASE — 九黎月風格
+   ═══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 18px; }
+body {
+  font-family: 'Noto Sans TC', -apple-system, sans-serif;
+  background: #0c0c0c;
+  color: #d4d0ca;
+  overflow: hidden;
+  height: 100vh; width: 100vw;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════
+   ATMOSPHERIC BACKGROUND — 暗紅氛圍光
+   ═══════════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(180,40,40,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(120,30,30,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 90%, rgba(60,20,20,0.03) 0%, transparent 40%);
+}
+
+/* subtle grain */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  mix-blend-mode: overlay;
+}
+
+/* ═══════════════════════════════════════════
+   SLIDE SYSTEM
+   ═══════════════════════════════════════════ */
+.deck {
+  position: relative; width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1;
+}
+.slide {
+  display: none;
+  flex-direction: column; justify-content: center;
+  width: 86%; max-width: 960px;
+  min-height: 50vh;
+  padding: 48px 56px;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.slide.active {
+  display: flex;
+  animation: slideIn .5s cubic-bezier(.25,.46,.45,.94) forwards;
+}
+.slide.exit {
+  animation: slideOut .28s ease forwards;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+
+/* ═══════════════════════════════════════════
+   TYPOGRAPHY — 九黎月：letter-spacing + 極簡
+   ═══════════════════════════════════════════ */
+h1 {
+  font-size: 3.8rem; font-weight: 900; line-height: 1.25;
+  letter-spacing: 0.08em;
+  color: #f0ece4;
+}
+h2 {
+  font-size: 2.6rem; font-weight: 700; line-height: 1.3;
+  color: #e8e4dc;
+  letter-spacing: 0.06em;
+}
+h3 {
+  font-size: 1.5rem; font-weight: 500; color: #c0bbb2;
+  letter-spacing: 0.05em;
+}
+p, li {
+  font-size: 1.5rem; line-height: 1.9; color: #9a968e;
+  letter-spacing: 0.03em;
+}
+ul { padding-left: 1.2em; }
+li { margin-bottom: .5em; }
+li::marker { color: rgba(255,255,255,.12); }
+a {
+  color: #c85c5c; text-decoration: none;
+  border-bottom: 1px solid rgba(200,92,92,.25);
+  transition: border-color .3s, color .3s;
+  letter-spacing: 0.04em;
+}
+a:hover { border-color: #c85c5c; color: #e07070; }
+
+/* ═══════════════════════════════════════════
+   ACCENT COLORS — 紅色系為主
+   ═══════════════════════════════════════════ */
+.accent  { color: #d45454; }
+.gold    { color: #c9a84c; }
+.green   { color: #6dab7a; }
+.red     { color: #d45454; }
+.blue    { color: #7a9ebe; }
+.purple  { color: #a87ec4; }
+.dim     { color: #5c5a56; }
+.big     { font-size: 1.75rem; }
+
+/* ═══════════════════════════════════════════
+   PART LABELS — 紅色小標
+   ═══════════════════════════════════════════ */
+.label {
+  display: inline-block;
+  font-size: .7rem; font-weight: 500;
+  letter-spacing: 3px; text-transform: uppercase;
+  padding: 4px 14px; margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,.08);
+  color: #6a6660;
+  background: transparent;
+}
+.l0 { color: #6a6660; border-color: rgba(255,255,255,.08); }
+.l1 { color: #6dab7a; border-color: rgba(109,171,122,.2); }
+.l2 { color: #d45454; border-color: rgba(212,84,84,.2); }
+.l3 { color: #7a9ebe; border-color: rgba(122,158,190,.2); }
+.l4 { color: #a87ec4; border-color: rgba(168,126,196,.2); }
+
+/* ═══════════════════════════════════════════
+   DIVIDER — 九黎月標誌性分隔線
+   ═══════════════════════════════════════════ */
+.divider {
+  width: 100%; height: 1px;
+  background: rgba(255,255,255,.06);
+  margin: 22px 0;
+}
+
+/* ═══════════════════════════════════════════
+   LIST ITEMS — 九黎月風格（圖示 + 文字 + 分隔線）
+   ═══════════════════════════════════════════ */
+.menu-list {
+  list-style: none; padding: 0; margin: 16px 0;
+}
+.menu-list li {
+  display: flex; align-items: center; gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  font-size: 1.45rem;
+  color: #b8b4ac;
+  letter-spacing: 0.08em;
+  transition: color .3s;
+}
+.menu-list li:last-child { border-bottom: none; }
+.menu-list li .ico {
+  font-size: 1.2rem; width: 28px; text-align: center;
+  color: rgba(255,255,255,.2);
+}
+.menu-list li .arrow {
+  margin-left: auto;
+  color: rgba(255,255,255,.1);
+  font-size: .9rem;
+}
+
+/* ═══════════════════════════════════════════
+   CARDS — 半透明卡片 (微妙邊框)
+   ═══════════════════════════════════════════ */
+.cards { display: flex; gap: 16px; margin: 22px 0; flex-wrap: wrap; }
+.card {
+  flex: 1; min-width: 220px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  padding: 26px 24px;
+  transition: border-color .4s;
+}
+.card:hover {
+  border-color: rgba(255,255,255,.12);
+}
+.card h3 { font-size: 1.3rem; color: #d45454; margin-bottom: 8px; letter-spacing: 0.06em; }
+.card p  { font-size: 1.1rem; color: #7a7872; }
+.card a  { font-size: 1.05rem; }
+
+/* ═══════════════════════════════════════════
+   FEATURED CARD — 九黎月「最新作品」風格
+   ═══════════════════════════════════════════ */
+.featured {
+  border: 1px solid rgba(212,84,84,.15);
+  background: rgba(212,84,84,.03);
+  padding: 28px 30px;
+  margin: 20px 0;
+  position: relative;
+}
+.featured .badge {
+  position: absolute; top: 16px; right: 18px;
+  font-size: .65rem; letter-spacing: 2px;
+  color: #d45454;
+  display: flex; align-items: center; gap: 5px;
+}
+.featured .badge::before {
+  content: ''; width: 6px; height: 6px;
+  background: #d45454; border-radius: 50%;
+}
+.featured h3 { color: #e8e4dc; font-size: 1.25rem; margin-bottom: 4px; }
+.featured p { font-size: 1rem; color: #6a6660; }
+
+/* ═══════════════════════════════════════════
+   CODE / SYNTAX BLOCK
+   ═══════════════════════════════════════════ */
+.code {
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.05);
+  border-left: 2px solid rgba(212,84,84,.3);
+  padding: 22px 28px;
+  margin: 18px 0;
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 1.3rem; line-height: 1.9;
+  color: #b0aca4;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  letter-spacing: 0.02em;
+}
+.code .t { color: #d45454; font-weight: 700; }
+.code .p { color: #6dab7a; font-weight: 600; }
+.code .l { color: #b0aca4; }
+
+/* ═══════════════════════════════════════════
+   TABLE — 極簡分隔線風格
+   ═══════════════════════════════════════════ */
+table {
+  width: 100%; border-collapse: collapse; margin: 18px 0;
+  font-size: 1.2rem;
+}
+th {
+  text-align: left; padding: 12px 16px;
+  color: #5c5a56; font-weight: 400; font-size: .85rem;
+  letter-spacing: 2px; text-transform: uppercase;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+td {
+  padding: 14px 16px; color: #9a968e;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  letter-spacing: 0.03em;
+}
+tr { transition: background .3s; }
+tr:hover td { background: rgba(255,255,255,.015); }
+
+/* ═══════════════════════════════════════════
+   STEPS (numbered)
+   ═══════════════════════════════════════════ */
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps li {
+  counter-increment: s; padding-left: 52px; position: relative; margin-bottom: 16px;
+}
+.steps li::before {
+  content: counter(s);
+  position: absolute; left: 0; top: 5px;
+  width: 34px; height: 34px;
+  background: transparent; color: #d45454;
+  border: 1px solid rgba(212,84,84,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 500; font-size: .95rem;
+  letter-spacing: 0;
+}
+
+/* ═══════════════════════════════════════════
+   TIP / WARNING — 極簡
+   ═══════════════════════════════════════════ */
+.tip, .warn {
+  padding: 16px 22px; margin: 18px 0;
+  font-size: 1.2rem; line-height: 1.7;
+  border-left: 2px solid;
+  letter-spacing: 0.02em;
+}
+.tip {
+  border-color: rgba(109,171,122,.4);
+  color: #7a9a82;
+  background: rgba(109,171,122,.03);
+}
+.tip::before { content: '💡  '; }
+.warn {
+  border-color: rgba(212,84,84,.4);
+  color: #b08080;
+  background: rgba(212,84,84,.03);
+}
+.warn::before { content: '⚠️  '; }
+
+/* ═══════════════════════════════════════════
+   HANDS-ON / ACTION BLOCK
+   ═══════════════════════════════════════════ */
+.action {
+  text-align: center;
+  border: 1px solid rgba(212,84,84,.12);
+  background: rgba(212,84,84,.02);
+  padding: 48px 40px; margin: 24px 0;
+}
+.action h3 {
+  font-size: 2rem; color: #d45454; margin-bottom: 10px;
+  letter-spacing: 0.1em;
+}
+.action p  { font-size: 1.4rem; color: #9a968e; margin-top: 6px; }
+
+/* ═══════════════════════════════════════════
+   FLOW DIAGRAM
+   ═══════════════════════════════════════════ */
+.flow {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin: 30px 0; flex-wrap: wrap;
+}
+.flow-box {
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.02);
+  padding: 20px 28px; text-align: center; min-width: 130px;
+  transition: border-color .4s;
+}
+.flow-box:hover { border-color: rgba(255,255,255,.12); }
+.flow-box .icon { font-size: 2rem; display: block; margin-bottom: 6px; }
+.flow-box .name {
+  font-size: 1.1rem; color: #c0bbb2; font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.flow-arr { font-size: 1.3rem; color: rgba(255,255,255,.1); }
+
+/* ═══════════════════════════════════════════
+   NOW PLAYING BAR — 底部進度條
+   ═══════════════════════════════════════════ */
+#bar {
+  position: fixed; top: 0; left: 0; height: 2px; z-index: 9990;
+  background: #d45454;
+  transition: width .4s cubic-bezier(.25,.46,.45,.94);
+  box-shadow: 0 0 8px rgba(212,84,84,.3);
+}
+
+#now-playing {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 52px; z-index: 9990;
+  background: rgba(18,18,18,.85);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,.04);
+  display: flex; align-items: center;
+  padding: 0 28px;
+}
+#now-playing .np-label {
+  font-size: .6rem; letter-spacing: 3px; text-transform: uppercase;
+  color: #d45454; margin-right: 16px; font-weight: 500;
+}
+#now-playing .np-title {
+  font-size: .85rem; color: #8a8680; letter-spacing: 0.05em;
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#now-playing .np-page {
+  font-size: .8rem; color: #4a4844;
+  font-family: 'SF Mono', monospace; letter-spacing: 1px;
+}
+#now-playing .np-controls {
+  display: flex; align-items: center; gap: 14px; margin-left: 20px;
+}
+#now-playing .np-btn {
+  width: 34px; height: 34px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255,255,255,.3);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem;
+  transition: border-color .3s, color .3s;
+}
+#now-playing .np-btn:hover {
+  border-color: rgba(255,255,255,.25);
+  color: rgba(255,255,255,.6);
+}
+
+/* ═══════════════════════════════════════════
+   FULLSCREEN BUTTON
+   ═══════════════════════════════════════════ */
+#fs {
+  position: fixed; top: 16px; right: 20px;
+  background: transparent; color: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.06); padding: 5px 12px;
+  cursor: pointer; font-size: .75rem; z-index: 9990;
+  letter-spacing: 2px;
+  transition: color .3s, border-color .3s;
+}
+#fs:hover { color: rgba(255,255,255,.35); border-color: rgba(255,255,255,.12); }
+
+/* ═══════════════════════════════════════════
+   COVER SPECIAL
+   ═══════════════════════════════════════════ */
+.cover { text-align: center; }
+.cover h1 {
+  font-size: 4.2rem; margin-bottom: .2em;
+  letter-spacing: 0.1em;
+}
+.cover .sub {
+  font-size: 1.35rem; color: #5c5a56; font-weight: 300;
+  letter-spacing: 0.12em;
+}
+.cover .icons {
+  font-size: 2.8rem; margin-bottom: 18px;
+  letter-spacing: 16px;
+}
+.cover .meta {
+  margin-top: 40px; font-size: .8rem; color: rgba(255,255,255,.1);
+  letter-spacing: 4px; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════
+   VIP BADGE
+   ═══════════════════════════════════════════ */
+.vip {
+  display: inline-block;
+  font-size: .6rem; letter-spacing: 2px;
+  padding: 2px 10px;
+  border: 1px solid rgba(201,168,76,.3);
+  color: #c9a84c;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  html { font-size: 14px; }
+  .slide { padding: 28px 22px; }
+  .cards { flex-direction: column; }
+  .flow { gap: 6px; }
+  .cover h1 { font-size: 2.8rem; }
+  #now-playing { height: 44px; padding: 0 16px; }
+}
+</style>
+</head>
+<body>
+
+<div id="bar"></div>
+<button id="fs" onclick="toggleFS()">全螢幕</button>
+
+<div class="deck">
+
+<!-- ═══ 1: COVER ═══ -->
+<div class="slide active" data-title="課程簡介">
+  <div class="cover">
+    <div class="icons">🎵 🎬 🚀</div>
+    <h1>用 AI 做出一支<br>YouTube 影片</h1>
+    <p class="sub">Suno 音樂 × CC0 素材 × Vizzy 影片</p>
+    <p class="meta">2 小時實戰工作坊</p>
+  </div>
+</div>
+
+<!-- ═══ 2: 目標 ═══ -->
+<div class="slide" data-title="今天的目標">
+  <span class="label l0">Overview</span>
+  <h2>今天的目標</h2>
+  <div class="divider"></div>
+  <p class="big" style="color:#c0bbb2; margin:16px 0;">在 2 小時內，從零完成一支<span class="accent">可上傳 YouTube 的音樂影片</span></p>
+  <div class="flow">
+    <div class="flow-box"><span class="icon">📸</span><span class="name">準備素材</span></div>
+    <span class="flow-arr">→</span>
+    <div class="flow-box"><span class="icon">🎵</span><span class="name">AI 產音樂</span></div>
+    <span class="flow-arr">→</span>
+    <div class="flow-box"><span class="icon">🎬</span><span class="name">製作影片</span></div>
+    <span class="flow-arr">→</span>
+    <div class="flow-box"><span class="icon">📤</span><span class="name">上傳 YT</span></div>
+  </div>
+  <div class="tip">所有工具都是<span class="green">免費</span>且在<span class="green">瀏覽器</span>裡操作，不需安裝軟體！</div>
+</div>
+
+<!-- ═══ 3: 時間 ═══ -->
+<div class="slide" data-title="時間分配">
+  <span class="label l0">Overview</span>
+  <h2>時間分配</h2>
+  <div class="divider"></div>
+  <ul class="menu-list">
+    <li><span class="ico">📸</span> Part 1 — CC0 素材與著作權觀念 <span class="arrow">~15 分鐘</span></li>
+    <li><span class="ico">🎵</span> Part 2 — Suno AI 音樂製作 <span class="arrow">~50 分鐘</span></li>
+    <li><span class="ico">🎬</span> Part 3 — Vizzy.io 影片製作 <span class="arrow">~40 分鐘</span></li>
+    <li><span class="ico">📤</span> Part 4 — 上傳 YouTube + Q&A <span class="arrow">~15 分鐘</span></li>
+  </ul>
+  <div class="tip">每個階段都有實作時間，請跟著一起操作！</div>
+</div>
+
+<!-- ═══ 4: Part1 封面 ═══ -->
+<div class="slide" data-title="CC0 素材與著作權">
+  <span class="label l1">Part 1</span>
+  <h1>CC0 素材<br>與著作權</h1>
+  <div class="divider"></div>
+  <p style="font-size:1.4rem; color:#5c5a56; letter-spacing:0.06em;">做影片之前，先搞懂素材的版權問題</p>
+</div>
+
+<!-- ═══ 5: CC0 ═══ -->
+<div class="slide" data-title="什麼是 CC0？">
+  <span class="label l1">Part 1</span>
+  <h2>什麼是 CC0？</h2>
+  <div class="divider"></div>
+  <p style="margin-bottom:16px;"><span class="accent" style="font-size:1.6rem;">Creative Commons Zero</span> — 公眾領域貢獻宣告</p>
+  <ul class="menu-list">
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 免費使用 — 不用付費</li>
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 免標註來源 — 不用寫「圖片來源：XXX」</li>
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 可商業使用 — 做 YouTube 影片完全沒問題</li>
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 可自由修改 — 裁切、調色、加文字都行</li>
+  </ul>
+  <div class="warn">從 Google 隨便找的圖片<span class="red">不是</span> CC0！使用有版權的素材可能被 YouTube 下架。</div>
+</div>
+
+<!-- ═══ 6: 圖片網站 ═══ -->
+<div class="slide" data-title="CC0 圖片網站">
+  <span class="label l1">Part 1</span>
+  <h2>推薦 CC0 圖片網站</h2>
+  <div class="divider"></div>
+  <div class="cards">
+    <div class="card">
+      <h3>Unsplash</h3>
+      <p>百萬張高品質攝影作品</p>
+      <a href="https://unsplash.com" target="_blank">unsplash.com →</a>
+    </div>
+    <div class="card">
+      <h3>Pexels</h3>
+      <p>免費圖片 + 影片素材</p>
+      <a href="https://pexels.com" target="_blank">pexels.com →</a>
+    </div>
+    <div class="card">
+      <h3>Pixabay</h3>
+      <p>圖片、向量圖、插圖都有</p>
+      <a href="https://pixabay.com" target="_blank">pixabay.com →</a>
+    </div>
+  </div>
+  <div class="tip">用<span class="accent">英文關鍵字</span>搜尋結果會更多！例如 "sunset" 而不是 "日落"</div>
+</div>
+
+<!-- ═══ 7: 字體 ═══ -->
+<div class="slide" data-title="免費字體來源">
+  <span class="label l1">Part 1</span>
+  <h2>免費字體來源</h2>
+  <div class="divider"></div>
+  <p>影片中的中文字幕和標題，字體也有版權！</p>
+  <div class="cards" style="margin-top:16px;">
+    <div class="card">
+      <h3>Google Fonts</h3>
+      <p>OFL 授權，可免費商用<br><span class="dim">推薦：Noto Sans TC</span></p>
+      <a href="https://fonts.google.com" target="_blank">fonts.google.com →</a>
+    </div>
+    <div class="card">
+      <h3>justfont</h3>
+      <p>部分免費中文字體<br><span class="dim">注意看授權說明</span></p>
+      <a href="https://justfont.com" target="_blank">justfont.com →</a>
+    </div>
+    <div class="card">
+      <h3>猫啃网</h3>
+      <p>大量免費字體收錄<br><span class="dim">可篩選 CC0 / OFL 授權</span></p>
+      <a href="https://www.maoken.com" target="_blank">maoken.com →</a>
+    </div>
+  </div>
+  <div class="warn">系統內建字體<span class="red">不一定</span>可商用！安全起見請使用上述網站的字體。</div>
+</div>
+
+<!-- ═══ 8: 實作 ═══ -->
+<div class="slide" data-title="實作：下載圖片">
+  <span class="label l1">Part 1</span>
+  <div class="action">
+    <h3>✋ 實 作 時 間</h3>
+    <p>請到 Unsplash / Pexels / Pixabay</p>
+    <p>下載 <span class="accent">2 ~ 3 張</span>你喜歡的圖片</p>
+    <p class="dim" style="font-size:1rem; margin-top:14px;">等等做影片要用，先存到桌面</p>
+    <p class="accent" style="font-size:1.25rem; margin-top:18px;">⏱ 約 5 分鐘</p>
+  </div>
+</div>
+
+<!-- ═══ 9: Part2 封面 ═══ -->
+<div class="slide" data-title="Suno AI 音樂製作">
+  <span class="label l2">Part 2</span>
+  <h1>Suno AI<br>音樂製作</h1>
+  <div class="divider"></div>
+  <p style="font-size:1.4rem; color:#5c5a56; letter-spacing:0.06em;">用文字描述，讓 AI 幫你寫歌作曲</p>
+</div>
+
+<!-- ═══ 10: Suno 介紹 ═══ -->
+<div class="slide" data-title="Suno 是什麼？">
+  <span class="label l2">Part 2</span>
+  <h2>Suno 是什麼？</h2>
+  <div class="divider"></div>
+  <ul class="menu-list">
+    <li><span class="ico">🎵</span> 一個 <span class="accent">AI 音樂生成工具</span>，輸入文字就能產出完整歌曲</li>
+    <li><span class="ico">🎸</span> 支援各種曲風：流行、搖滾、電子、古典、中文歌...</li>
+    <li><span class="ico">🆓</span> 免費帳號每天有<span class="green">一定額度</span>可使用</li>
+    <li><span class="ico">📥</span> 產出的音樂可以下載成 MP3</li>
+  </ul>
+  <div class="divider"></div>
+  <p style="font-size:1.45rem;">👉 前往 <a href="https://suno.com" target="_blank">suno.com</a> 註冊 / 登入</p>
+  <div class="tip">可以用 Google 帳號快速登入！</div>
+</div>
+
+<!-- ═══ 11: 兩大欄位 ═══ -->
+<div class="slide" data-title="基本操作">
+  <span class="label l2">Part 2</span>
+  <h2>基本操作：兩大欄位</h2>
+  <div class="divider"></div>
+  <div class="cards">
+    <div class="card" style="border-color: rgba(212,84,84,.2);">
+      <h3>🎨 Style Prompt（風格描述）</h3>
+      <p>告訴 AI 你想要什麼風格</p>
+      <div class="code" style="font-size:1.1rem; margin-top:10px;">Mandarin pop, female vocal,
+emotional piano ballad,
+slow tempo</div>
+    </div>
+    <div class="card" style="border-color: rgba(109,171,122,.2);">
+      <h3 style="color:#6dab7a;">📝 Lyrics（歌詞）</h3>
+      <p>填入歌詞，搭配結構標籤</p>
+      <div class="code" style="font-size:1.1rem; margin-top:10px;"><span class="t">[Verse]</span>
+<span class="l">月光灑落在窗前</span>
+<span class="l">思念隨風飄遠</span>
+
+<span class="t">[Chorus]</span>
+<span class="l">我在這裡等你回來</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 12: [] 結構標籤 ═══ -->
+<div class="slide" data-title="[] 歌曲結構標籤">
+  <span class="label l2">Part 2</span>
+  <h2>[ ] 中括號 — 歌曲結構標籤</h2>
+  <div class="divider"></div>
+  <p>用 <span class="accent">[ ]</span> 標記段落結構，幫助 AI 組織音樂</p>
+  <table style="margin-top:14px;">
+    <tr><th>標籤</th><th>用途</th><th>說明</th></tr>
+    <tr><td><span class="accent">[Intro]</span></td><td>前奏</td><td>歌曲開頭，營造氣氛</td></tr>
+    <tr><td><span class="accent">[Verse]</span></td><td>主歌</td><td>主要敘事段落</td></tr>
+    <tr><td><span class="accent">[Pre-Chorus]</span></td><td>導歌</td><td>情緒漸進，銜接副歌</td></tr>
+    <tr><td><span class="accent">[Chorus]</span></td><td>副歌</td><td>最高潮、最有記憶點的部分</td></tr>
+    <tr><td><span class="accent">[Bridge]</span></td><td>橋段</td><td>轉折段，帶來變化</td></tr>
+    <tr><td><span class="accent">[Outro]</span></td><td>尾奏</td><td>歌曲收尾</td></tr>
+  </table>
+</div>
+
+<!-- ═══ 13: [] 更多標籤 ═══ -->
+<div class="slide" data-title="[] 更多標籤">
+  <span class="label l2">Part 2</span>
+  <h2>[ ] 更多實用標籤</h2>
+  <div class="divider"></div>
+  <table>
+    <tr><th>標籤</th><th>效果</th></tr>
+    <tr><td><span class="accent">[Instrumental]</span></td><td>純樂器演奏，沒有人聲</td></tr>
+    <tr><td><span class="accent">[Break]</span></td><td>間奏 / 節奏暫歇</td></tr>
+    <tr><td><span class="accent">[Solo]</span></td><td>樂器獨奏</td></tr>
+    <tr><td><span class="accent">[Rap]</span></td><td>饒舌段落</td></tr>
+    <tr><td><span class="accent">[Breakdown]</span></td><td>降低能量，拉回樂器</td></tr>
+    <tr><td><span class="accent">[Build]</span></td><td>能量逐漸堆疊</td></tr>
+  </table>
+  <div class="tip">標籤可以組合，例如 <span class="accent">[Verse 2]</span>、<span class="accent">[Final Chorus]</span></div>
+</div>
+
+<!-- ═══ 14: [] 完整範例 ═══ -->
+<div class="slide" data-title="[] 完整範例">
+  <span class="label l2">Part 2</span>
+  <h2>[ ] 完整歌詞範例</h2>
+  <div class="divider"></div>
+  <div class="code"><span class="t">[Intro]</span>
+<span class="t">[Instrumental]</span>
+
+<span class="t">[Verse 1]</span>
+<span class="l">城市的燈光太刺眼</span>
+<span class="l">找不到回家的路線</span>
+
+<span class="t">[Chorus]</span>
+<span class="l">但你是我的北極星</span>
+<span class="l">在黑暗中指引方向</span>
+
+<span class="t">[Break]</span>
+
+<span class="t">[Verse 2]</span>
+<span class="l">雨滴落在肩膀上</span>
+<span class="l">像你溫柔的手掌</span>
+
+<span class="t">[Chorus]</span>
+<span class="l">但你是我的北極星</span>
+<span class="l">在黑暗中指引方向</span>
+
+<span class="t">[Outro]</span></div>
+</div>
+
+<!-- ═══ 15: () 基本 ═══ -->
+<div class="slide" data-title="() 聲音效果指令">
+  <span class="label l2">Part 2</span>
+  <h2>( ) 小括號 — 聲音效果指令</h2>
+  <div class="divider"></div>
+  <p>用 <span class="green">( )</span> 控制演唱方式和聲音表現</p>
+  <table style="margin-top:14px;">
+    <tr><th>語法</th><th>效果</th></tr>
+    <tr><td><span class="green">(whispered)</span></td><td>低語、氣音</td></tr>
+    <tr><td><span class="green">(belted)</span></td><td>高亢嘶吼</td></tr>
+    <tr><td><span class="green">(spoken word)</span></td><td>口白，說話而不是唱</td></tr>
+    <tr><td><span class="green">(harmonized)</span></td><td>和聲效果</td></tr>
+    <tr><td><span class="green">(falsetto)</span></td><td>假音</td></tr>
+    <tr><td><span class="green">(ad-lib)</span></td><td>即興發揮</td></tr>
+  </table>
+</div>
+
+<!-- ═══ 16: () 進階 ═══ -->
+<div class="slide" data-title="() 進階用法">
+  <span class="label l2">Part 2</span>
+  <h2>( ) 進階用法</h2>
+  <div class="divider"></div>
+  <h3 style="margin-top:12px;">🎤 二重唱 / 回音效果</h3>
+  <p>歌詞後加括號重複，產生<span class="green">合唱感</span>：</p>
+  <div class="code"><span class="l">我在這裡等你</span> <span class="p">(我在這裡等你)</span>
+<span class="l">永遠不會離開</span> <span class="p">(永遠不會離開)</span></div>
+
+  <h3 style="margin-top:20px;">🎵 插入氣氛短語</h3>
+  <div class="code"><span class="t">[Chorus]</span>
+<span class="p">(oh yeah!)</span>
+<span class="l">今晚我們一起飛</span>
+<span class="l">飛到星空的那一端</span>
+<span class="p">(hey!)</span></div>
+</div>
+
+<!-- ═══ 17: () 情緒 ═══ -->
+<div class="slide" data-title="() 控制情緒">
+  <span class="label l2">Part 2</span>
+  <h2>( ) 控制情緒變化</h2>
+  <div class="divider"></div>
+  <p>括號描述段落的<span class="green">情緒轉變</span>：</p>
+  <div class="code"><span class="t">[Verse 1]</span>
+<span class="p">(softly, gentle)</span>
+<span class="l">那天你走的時候</span>
+<span class="l">天空下著小雨</span>
+
+<span class="t">[Chorus]</span>
+<span class="p">(building intensity)</span>
+<span class="l">但我知道你會回來</span>
+<span class="l">因為我們的故事還沒結束</span>
+
+<span class="t">[Bridge]</span>
+<span class="p">(stripped back, piano only)</span>
+<span class="l">如果時間能倒流...</span></div>
+  <div class="tip">括號指令放在段落開頭效果最好！</div>
+</div>
+
+<!-- ═══ 18: 修正 ═══ -->
+<div class="slide" data-title="歌詞修正三種方式">
+  <span class="label l2">Part 2</span>
+  <h2>歌詞修正三種方式</h2>
+  <div class="divider"></div>
+  <p>AI 生成的歌不滿意？有三種方法調整：</p>
+  <div class="cards" style="margin-top:18px;">
+    <div class="card" style="border-color: rgba(212,84,84,.2);">
+      <h3>1. Rerun</h3>
+      <p>同樣歌詞，重新生成<br><span class="dim">→ 旋律和編曲會完全不同</span></p>
+    </div>
+    <div class="card" style="border-color: rgba(109,171,122,.2);">
+      <h3 style="color:#6dab7a;">2. Extend</h3>
+      <p>從歌曲結尾繼續延長<br><span class="dim">→ 適合歌曲太短或被截斷</span></p>
+    </div>
+    <div class="card" style="border-color: rgba(122,158,190,.2);">
+      <h3 style="color:#7a9ebe;">3. 手動修改</h3>
+      <p>複製歌詞修改後重新 Create<br><span class="dim">→ 最精確的控制方式</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 19: 手動修改步驟 ═══ -->
+<div class="slide" data-title="手動修改步驟">
+  <span class="label l2">Part 2</span>
+  <h2>手動修改歌詞（詳細步驟）</h2>
+  <div class="divider"></div>
+  <ul class="steps">
+    <li>聽完生成的歌曲，找到<span class="accent">不滿意的地方</span></li>
+    <li>看右側欄位的歌詞，找到<span class="accent">對應段落</span></li>
+    <li>複製歌詞到左側 Lyrics 欄位</li>
+    <li>修改想改的部分（錯字、段落、標籤）</li>
+    <li>其他欄位（Style 等）保持不變</li>
+    <li>點擊 <span class="accent">Create</span> 重新生成</li>
+  </ul>
+  <div class="tip">如果只是在某處斷掉，複製斷點之後的歌詞用 <span class="accent">Extend</span> 更方便！</div>
+</div>
+
+<!-- ═══ 20: 小抄 ═══ -->
+<div class="slide" data-title="Suno 語法小抄">
+  <span class="label l2">Part 2</span>
+  <h2>Suno 語法小抄</h2>
+  <div class="divider"></div>
+  <table>
+    <tr><th>語法</th><th>類型</th><th>功能</th></tr>
+    <tr><td><span class="accent">[Intro]</span></td><td>結構</td><td>標記前奏段落</td></tr>
+    <tr><td><span class="accent">[Verse]</span></td><td>結構</td><td>標記主歌段落</td></tr>
+    <tr><td><span class="accent">[Chorus]</span></td><td>結構</td><td>標記副歌段落</td></tr>
+    <tr><td><span class="accent">[Outro]</span></td><td>結構</td><td>標記尾奏段落</td></tr>
+    <tr><td><span class="green">(whispered)</span></td><td>聲音</td><td>低語氣音演唱</td></tr>
+    <tr><td><span class="green">(belted)</span></td><td>聲音</td><td>高亢嘶吼</td></tr>
+    <tr><td><span class="green">歌詞(歌詞)</span></td><td>效果</td><td>產生二重唱感</td></tr>
+  </table>
+</div>
+
+<!-- ═══ 21: Part2 實作 ═══ -->
+<div class="slide" data-title="實作：做一首歌">
+  <span class="label l2">Part 2</span>
+  <div class="action">
+    <h3>✋ 實 作 時 間</h3>
+    <p>打開 <a href="https://suno.com" target="_blank" style="color:#d45454;">suno.com</a></p>
+    <p>做出 <span class="accent">一首你自己的歌</span></p>
+    <p style="margin-top:12px;">記得使用 <span class="accent">[ ] 結構標籤</span> + <span class="green">( ) 聲音指令</span></p>
+    <p class="dim" style="font-size:1rem; margin-top:14px;">滿意後請下載 MP3 到桌面</p>
+    <p class="accent" style="font-size:1.25rem; margin-top:18px;">⏱ 約 20 分鐘</p>
+  </div>
+</div>
+
+<!-- ═══ 22: Part3 封面 ═══ -->
+<div class="slide" data-title="Vizzy.io 影片製作">
+  <span class="label l3">Part 3</span>
+  <h1>Vizzy.io<br>影片製作</h1>
+  <div class="divider"></div>
+  <p style="font-size:1.4rem; color:#5c5a56; letter-spacing:0.06em;">把音樂和圖片變成一支炫酷的音樂影片</p>
+</div>
+
+<!-- ═══ 23: Vizzy 介紹 ═══ -->
+<div class="slide" data-title="Vizzy.io 是什麼？">
+  <span class="label l3">Part 3</span>
+  <h2>Vizzy.io 是什麼？</h2>
+  <div class="divider"></div>
+  <ul class="menu-list">
+    <li><span class="ico">🎬</span> 線上 <span class="accent">音樂視覺化影片</span> 製作工具</li>
+    <li><span class="ico">🎵</span> 圖片可以<span class="green">隨著音樂節拍跳動</span></li>
+    <li><span class="ico">📊</span> 內建音頻分析器 Audio Analyzer</li>
+    <li><span class="ico">✏️</span> 支援加入動態文字</li>
+    <li><span class="ico">🆓</span> 免費，瀏覽器直接操作</li>
+    <li><span class="ico">🎞️</span> 可匯出最高 <span class="accent">4K / 60fps</span></li>
+  </ul>
+  <div class="divider"></div>
+  <p style="font-size:1.4rem;">👉 <a href="https://vizzy.io" target="_blank">vizzy.io</a> → 點擊 <span class="accent">Editor</span></p>
+  <div class="tip">建議使用 <span class="accent">Chrome 瀏覽器</span>，相容性最好！</div>
+</div>
+
+<!-- ═══ 24: 步驟1 ═══ -->
+<div class="slide" data-title="步驟 1：匯入音樂">
+  <span class="label l3">Part 3</span>
+  <h2>步驟 1 — 建立專案 & 匯入音樂</h2>
+  <div class="divider"></div>
+  <ul class="steps">
+    <li>到 <a href="https://vizzy.io" target="_blank">vizzy.io</a> 點擊 <span class="accent">Editor</span> 進入編輯器</li>
+    <li>刪除預設的範例內容（選取 → Delete）</li>
+    <li>將 Suno 下載的 <span class="accent">MP3 檔案</span>拖曳進編輯器</li>
+    <li>確認音樂出現在時間軸上</li>
+  </ul>
+  <div class="tip">進入編輯器後，點選上方 <span class="accent">Help</span> 可以看官方教學！</div>
+</div>
+
+<!-- ═══ 25: 步驟2 ═══ -->
+<div class="slide" data-title="步驟 2：背景圖片">
+  <span class="label l3">Part 3</span>
+  <h2>步驟 2 — 設定背景圖片</h2>
+  <div class="divider"></div>
+  <ul class="steps">
+    <li>將 Part 1 下載的 <span class="accent">CC0 圖片</span>拖曳進編輯器</li>
+    <li>調整圖片大小，填滿整個畫面</li>
+    <li>可使用多張圖片，在時間軸上排列切換</li>
+  </ul>
+  <div class="tip">想讓背景隨音樂跳動？加上 <span class="accent">Audio Analyzer</span>！</div>
+</div>
+
+<!-- ═══ 26: 步驟3 ═══ -->
+<div class="slide" data-title="步驟 3：音頻視覺化">
+  <span class="label l3">Part 3</span>
+  <h2>步驟 3 — 加入音頻視覺化</h2>
+  <div class="divider"></div>
+  <ul class="steps">
+    <li>找到 <span class="accent">Audio Analyzer</span>（音頻分析器）</li>
+    <li>加到想要的視覺元素上</li>
+    <li>調整 <span class="accent">Base</span> 和 <span class="accent">Max</span> 數值控制反應強度</li>
+    <li>播放預覽效果，不滿意就微調</li>
+  </ul>
+  <div class="divider"></div>
+  <p>可以加視覺化的元素：</p>
+  <ul>
+    <li>背景圖片的縮放 / 旋轉</li>
+    <li>音波波形 Sound Wave</li>
+    <li>文字的大小 / 透明度</li>
+  </ul>
+</div>
+
+<!-- ═══ 27: 步驟4 ═══ -->
+<div class="slide" data-title="步驟 4：動態文字">
+  <span class="label l3">Part 3</span>
+  <h2>步驟 4 — 加入動態文字</h2>
+  <div class="divider"></div>
+  <ul class="steps">
+    <li>加入 Text 文字元素，輸入歌名</li>
+    <li>選擇字體、大小、顏色</li>
+    <li>可加歌詞字幕，設定出現時間</li>
+    <li>搭配 Audio Analyzer 讓文字跟節拍跳動</li>
+  </ul>
+  <div class="warn">需要中文字體？請使用 CC0 / OFL 授權的字體！（回顧 Part 1）</div>
+</div>
+
+<!-- ═══ 28: 步驟5 ═══ -->
+<div class="slide" data-title="步驟 5：匯出">
+  <span class="label l3">Part 3</span>
+  <h2>步驟 5 — 預覽 & 匯出</h2>
+  <div class="divider"></div>
+  <ul class="steps">
+    <li>按 <span class="accent">播放</span> 預覽整支影片</li>
+    <li>不滿意隨時調整</li>
+    <li>點擊 <span class="accent">Export / Render</span></li>
+    <li>建議解析度：<span class="accent">1920 × 1080（1080p）</span></li>
+    <li>等待匯出完成，下載 MP4</li>
+  </ul>
+  <div class="tip">匯出需要時間，趁這時候去準備 YouTube 的標題和描述！</div>
+</div>
+
+<!-- ═══ 29: Part3 實作 ═══ -->
+<div class="slide" data-title="實作：做影片">
+  <span class="label l3">Part 3</span>
+  <div class="action">
+    <h3>✋ 實 作 時 間</h3>
+    <p>打開 <a href="https://vizzy.io" target="_blank" style="color:#d45454;">vizzy.io</a> 的 Editor</p>
+    <p>用你的 <span class="accent">音樂 + 圖片</span> 做出一支影片！</p>
+    <p class="dim" style="font-size:1rem; margin-top:14px;">完成後匯出 1080p MP4</p>
+    <p class="accent" style="font-size:1.25rem; margin-top:18px;">⏱ 約 30 分鐘</p>
+  </div>
+</div>
+
+<!-- ═══ 30: Part4 封面 ═══ -->
+<div class="slide" data-title="上傳到 YouTube">
+  <span class="label l4">Part 4</span>
+  <h1>上傳到<br>YouTube</h1>
+  <div class="divider"></div>
+  <p style="font-size:1.4rem; color:#5c5a56; letter-spacing:0.06em;">最後一步，讓全世界看到你的作品</p>
+</div>
+
+<!-- ═══ 31: 上傳步驟 ═══ -->
+<div class="slide" data-title="上傳步驟">
+  <span class="label l4">Part 4</span>
+  <h2>上傳步驟</h2>
+  <div class="divider"></div>
+  <ul class="steps">
+    <li>前往 <a href="https://studio.youtube.com" target="_blank">studio.youtube.com</a>（登入 Google）</li>
+    <li>點擊右上角 <span class="accent">建立 → 上傳影片</span></li>
+    <li>選擇匯出的 MP4 檔案</li>
+    <li>填寫標題和描述</li>
+  </ul>
+  <div class="code" style="font-size:1.05rem; margin-top:12px;">標題：你的歌名 | AI Music Video
+
+描述：
+🎵 音樂：Suno AI 生成
+🎬 影片：Vizzy.io 製作
+📸 圖片：Unsplash / Pexels (CC0)</div>
+  <ul class="steps" style="margin-top:14px; counter-reset: s 4;">
+    <li>可見度：<span class="accent">公開</span> 或 <span class="green">不公開</span>（只有連結的人能看）</li>
+    <li>點擊 <span class="accent">發布</span> 🎉</li>
+  </ul>
+</div>
+
+<!-- ═══ 32: 檢查清單 ═══ -->
+<div class="slide" data-title="上傳前檢查">
+  <span class="label l4">Part 4</span>
+  <h2>上傳前檢查清單</h2>
+  <div class="divider"></div>
+  <ul class="menu-list">
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 圖片素材都來自 CC0 圖庫？</li>
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 字體使用的是免費授權字體？</li>
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 音樂是用 Suno 自己生成的？</li>
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 影片解析度至少 1080p？</li>
+    <li><span class="ico" style="color:#6dab7a;">✓</span> 影片有聲音、畫面正常？</li>
+  </ul>
+  <div class="tip">全部用 CC0 素材 + AI 生成的音樂 = <span class="green">不會有版權問題</span>！</div>
+</div>
+
+<!-- ═══ 33: 結尾 ═══ -->
+<div class="slide" data-title="課程結束">
+  <div class="cover">
+    <h2 style="font-size:3.2rem; letter-spacing:0.1em;">🎉 恭喜完成！</h2>
+    <div class="divider" style="max-width:200px; margin:24px auto;"></div>
+    <p style="font-size:1.4rem; color:#9a968e; margin:18px 0; letter-spacing:0.06em;">今天你學會了</p>
+    <div class="flow" style="margin:24px 0;">
+      <div class="flow-box"><span class="icon">📸</span><span class="name">CC0 素材</span></div>
+      <span class="flow-arr">+</span>
+      <div class="flow-box"><span class="icon">🎵</span><span class="name">Suno 音樂</span></div>
+      <span class="flow-arr">+</span>
+      <div class="flow-box"><span class="icon">🎬</span><span class="name">Vizzy 影片</span></div>
+      <span class="flow-arr">=</span>
+      <div class="flow-box" style="border-color: rgba(212,84,84,.25);"><span class="icon">🚀</span><span class="name">YouTube!</span></div>
+    </div>
+    <div class="divider" style="max-width:200px; margin:24px auto;"></div>
+    <p style="font-size:1.4rem; color:#5c5a56; letter-spacing:0.06em;">有任何問題嗎？🙋</p>
+    <p class="meta" style="margin-top:32px;">感謝參加今天的課程</p>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<!-- NOW PLAYING BAR -->
+<div id="now-playing">
+  <span class="np-label">NOW PLAYING</span>
+  <span class="np-title" id="np-title">課程簡介</span>
+  <span class="np-page" id="np-page">1 / 33</span>
+  <div class="np-controls">
+    <button class="np-btn" onclick="go(cur-1)" title="上一頁">◁</button>
+    <button class="np-btn" onclick="go(cur+1)" title="下一頁">▷</button>
+  </div>
+</div>
+
+<script>
+var cur = 0;
+(function(){
+  const SS = document.querySelectorAll('.slide');
+  const N = SS.length;
+
+  window.go = function(n) {
+    if (n < 0 || n >= N || n === cur) return;
+    const old = SS[cur];
+    old.classList.remove('active');
+    old.classList.add('exit');
+    setTimeout(() => old.classList.remove('exit'), 300);
+
+    cur = n;
+    SS[cur].classList.add('active');
+    ui();
+  };
+
+  function ui() {
+    document.getElementById('bar').style.width = ((cur+1)/N*100)+'%';
+    document.getElementById('np-page').textContent = (cur+1)+' / '+N;
+    const title = SS[cur].getAttribute('data-title') || '';
+    document.getElementById('np-title').textContent = title;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') { e.preventDefault(); go(cur+1); }
+    else if (e.key==='ArrowLeft'||e.key==='ArrowUp') { e.preventDefault(); go(cur-1); }
+    else if (e.key==='Home') go(0);
+    else if (e.key==='End') go(N-1);
+    else if (e.key==='f'||e.key==='F') toggleFS();
+  });
+
+  document.querySelector('.deck').addEventListener('click', e => {
+    if (e.target.closest('a,button')) return;
+    e.clientX > innerWidth*.5 ? go(cur+1) : go(cur-1);
+  });
+
+  let tx=0;
+  document.addEventListener('touchstart', e => tx=e.changedTouches[0].screenX);
+  document.addEventListener('touchend', e => {
+    const d = e.changedTouches[0].screenX - tx;
+    if (Math.abs(d)>50) d<0 ? go(cur+1) : go(cur-1);
+  });
+
+  window.toggleFS = () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  };
+
+  ui();
+})();
+</script>
+</body>
+</html>
