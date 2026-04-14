@@ -35,6 +35,10 @@ h1 { font-size: 2rem; font-weight: 700; color: #f0ece4; letter-spacing: 0.08em; 
   color: #5c5a56; margin-bottom: 12px; font-weight: 500;
   padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.05);
 }
+.sub-label {
+  font-size: .7rem; color: #4a4844; letter-spacing: 2px;
+  margin: 8px 0 8px; font-weight: 500;
+}
 
 /* TAGS */
 .tags { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -170,33 +174,76 @@ h1 { font-size: 2rem; font-weight: 700; color: #f0ece4; letter-spacing: 0.08em; 
     </div>
   </div>
 
-  <!-- 中西日樂器 -->
+  <!-- 樂器 -->
   <div class="section" data-color="gold" data-key="instrument">
     <div class="section-title">樂器 Instruments</div>
-    <div class="tags">
+
+    <div class="sub-label">🀄 中式</div>
+    <div class="tags" style="margin-bottom:14px;">
       <button class="tag" data-val="guzheng">古箏</button>
       <button class="tag" data-val="pipa">琵琶</button>
       <button class="tag" data-val="erhu">二胡</button>
       <button class="tag" data-val="dizi">笛子</button>
       <button class="tag" data-val="xiao">簫</button>
-      <button class="tag" data-val="suona">嗩吶</button>
+      <button class="tag" data-val="Bagpipe solo-loud">嗩吶</button>
       <button class="tag" data-val="yangqin">揚琴</button>
+      <button class="tag" data-val="guqin">古琴</button>
+      <button class="tag" data-val="sheng">笙</button>
+      <button class="tag" data-val="chinese opera vocals">戲腔鑼鼓</button>
+    </div>
+
+    <div class="sub-label">🎌 日式</div>
+    <div class="tags" style="margin-bottom:14px;">
       <button class="tag" data-val="taiko drum">太鼓</button>
       <button class="tag" data-val="shamisen">三味線</button>
-      <button class="tag" data-val="koto">琴（日式）</button>
-      <button class="tag" data-val="piano">鋼琴</button>
-      <button class="tag" data-val="guitar">吉他</button>
+      <button class="tag" data-val="koto">箏（日式）</button>
+      <button class="tag" data-val="shakuhachi">尺八</button>
+      <button class="tag" data-val="biwa">琵琶（日式）</button>
+    </div>
+
+    <div class="sub-label">🎻 西式弦樂</div>
+    <div class="tags" style="margin-bottom:14px;">
+      <button class="tag" data-val="violin">小提琴</button>
+      <button class="tag" data-val="viola">中提琴</button>
+      <button class="tag" data-val="cello">大提琴</button>
+      <button class="tag" data-val="double bass">低音提琴</button>
+      <button class="tag" data-val="strings">弦樂組</button>
+      <button class="tag" data-val="harp">豎琴</button>
+      <button class="tag" data-val="guitar">木吉他</button>
       <button class="tag" data-val="electric guitar">電吉他</button>
       <button class="tag" data-val="bass">貝斯</button>
-      <button class="tag" data-val="violin">小提琴</button>
-      <button class="tag" data-val="cello">大提琴</button>
-      <button class="tag" data-val="strings">弦樂組</button>
-      <button class="tag" data-val="trumpet">小號</button>
-      <button class="tag" data-val="saxophone">薩克斯風</button>
+    </div>
+
+    <div class="sub-label">🎺 西式管樂</div>
+    <div class="tags" style="margin-bottom:14px;">
       <button class="tag" data-val="flute">長笛</button>
+      <button class="tag" data-val="clarinet">單簧管</button>
+      <button class="tag" data-val="oboe">雙簧管</button>
+      <button class="tag" data-val="trumpet">小號</button>
+      <button class="tag" data-val="trombone">長號</button>
+      <button class="tag" data-val="french horn">法國號</button>
+      <button class="tag" data-val="saxophone">薩克斯風</button>
+      <button class="tag" data-val="tuba">低音號</button>
+    </div>
+
+    <div class="sub-label">🥁 打擊 / 鍵盤</div>
+    <div class="tags" style="margin-bottom:14px;">
       <button class="tag" data-val="drums">鼓組</button>
+      <button class="tag" data-val="timpani">定音鼓</button>
+      <button class="tag" data-val="xylophone">木琴</button>
+      <button class="tag" data-val="piano">鋼琴</button>
+      <button class="tag" data-val="organ">管風琴</button>
+      <button class="tag" data-val="harpsichord">大鍵琴</button>
+    </div>
+
+    <div class="sub-label">🎛️ 其他</div>
+    <div class="tags">
       <button class="tag" data-val="synth">合成器</button>
       <button class="tag" data-val="epic choir">史詩合唱</button>
+      <button class="tag" data-val="sitar">西塔琴（印度）</button>
+      <button class="tag" data-val="tabla">塔布拉鼓（印度）</button>
+      <button class="tag" data-val="steel drum">鋼鼓（加勒比）</button>
+      <button class="tag" data-val="didgeridoo">迪吉里杜管（澳洲）</button>
     </div>
   </div>
 
@@ -359,7 +406,7 @@ function copyResult() {
 // 隨機池
 const pool = {
   genre: ['Chinese Traditional','J-pop','C-pop','EDM','Lo-fi Hip Hop','Folk','Dark Rock','R&B','Trap','Trance','Deep House','Epic Orchestral','Cinematic'],
-  instrument: ['guzheng','pipa','erhu','dizi','suona','piano','violin','strings','synth','epic choir','taiko drum'],
+  instrument: ['guzheng','pipa','erhu','dizi','xiao','Bagpipe solo-loud','yangqin','taiko drum','shamisen','koto','shakuhachi','violin','cello','strings','harp','piano','guitar','flute','trumpet','saxophone','synth','epic choir'],
   tempo: ['60 BPM','80 BPM','95 BPM','120 BPM','130 BPM','140 BPM'],
   mood: ['ethereal','melancholic','epic','dark','uplifting','mysterious','rebellious','sultry','groovy','powerful'],
   vocal: ['female vocal','male vocal','breathy female vocal','powerful female vocal','chinese opera vocals','no vocal, instrumental'],
