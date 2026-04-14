@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suno Style 產生器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: #0c0c0c;
+  color: #d4d0ca;
+  min-height: 100vh;
+  padding: 40px 24px 120px;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 20%, rgba(180,40,40,0.05) 0%, transparent 60%);
+}
+
+.container { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+h1 { font-size: 2rem; font-weight: 700; color: #f0ece4; letter-spacing: 0.08em; margin-bottom: 6px; }
+.subtitle { color: #5c5a56; font-size: .9rem; letter-spacing: 0.05em; margin-bottom: 36px; }
+
+/* SECTION */
+.section { margin-bottom: 28px; }
+.section-title {
+  font-size: .65rem; letter-spacing: 3px; text-transform: uppercase;
+  color: #5c5a56; margin-bottom: 12px; font-weight: 500;
+  padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+/* TAGS */
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  padding: 6px 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: transparent;
+  color: #7a7670;
+  font-size: .85rem;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: all .2s;
+  font-family: inherit;
+  border-radius: 2px;
+}
+.tag:hover { border-color: rgba(255,255,255,.2); color: #c0bbb2; }
+.tag.active { background: rgba(212,84,84,.12); border-color: rgba(212,84,84,.4); color: #d45454; }
+.tag.active-gold { background: rgba(201,168,76,.1); border-color: rgba(201,168,76,.35); color: #c9a84c; }
+.tag.active-green { background: rgba(109,171,122,.1); border-color: rgba(109,171,122,.35); color: #6dab7a; }
+.tag.active-blue { background: rgba(122,158,190,.1); border-color: rgba(122,158,190,.35); color: #7a9ebe; }
+.tag.active-purple { background: rgba(168,126,196,.1); border-color: rgba(168,126,196,.35); color: #a87ec4; }
+
+/* COLOR MAP per section */
+.section[data-color="gold"] .tag.active { background: rgba(201,168,76,.1); border-color: rgba(201,168,76,.35); color: #c9a84c; }
+.section[data-color="green"] .tag.active { background: rgba(109,171,122,.1); border-color: rgba(109,171,122,.35); color: #6dab7a; }
+.section[data-color="blue"] .tag.active { background: rgba(122,158,190,.1); border-color: rgba(122,158,190,.35); color: #7a9ebe; }
+.section[data-color="purple"] .tag.active { background: rgba(168,126,196,.1); border-color: rgba(168,126,196,.35); color: #a87ec4; }
+
+/* LUCKY BTN */
+.lucky-btn {
+  display: block; width: 100%; padding: 14px;
+  margin: 28px 0 0;
+  background: transparent;
+  border: 1px solid rgba(201,168,76,.3);
+  color: #c9a84c;
+  font-size: 1rem; letter-spacing: 3px;
+  cursor: pointer; font-family: inherit;
+  transition: all .3s;
+}
+.lucky-btn:hover { background: rgba(201,168,76,.06); border-color: rgba(201,168,76,.6); }
+
+/* RESULT */
+#result-box {
+  margin-top: 28px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.02);
+  padding: 20px 20px 16px;
+  display: none;
+}
+#result-box.show { display: block; }
+.result-label { font-size: .6rem; letter-spacing: 3px; text-transform: uppercase; color: #5c5a56; margin-bottom: 12px; }
+#result-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 36px; }
+.result-tag {
+  padding: 4px 12px;
+  border: 1px solid rgba(212,84,84,.3);
+  color: #d45454; font-size: .85rem; letter-spacing: 0.02em;
+}
+#result-text {
+  font-size: .95rem; color: #8a8680; line-height: 1.6;
+  padding: 12px 14px;
+  background: rgba(0,0,0,.3);
+  border: 1px solid rgba(255,255,255,.04);
+  margin-bottom: 14px;
+  word-break: break-all;
+  letter-spacing: 0.02em;
+}
+.copy-btn {
+  padding: 8px 20px;
+  border: 1px solid rgba(109,171,122,.3);
+  background: transparent; color: #6dab7a;
+  font-size: .8rem; letter-spacing: 2px;
+  cursor: pointer; font-family: inherit;
+  transition: all .2s;
+}
+.copy-btn:hover { background: rgba(109,171,122,.08); }
+.copy-btn.copied { border-color: rgba(109,171,122,.6); color: #6dab7a; }
+
+.divider { height: 1px; background: rgba(255,255,255,.05); margin: 10px 0 28px; }
+
+/* STICKY BOTTOM */
+#sticky {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(10,10,10,.97);
+  border-top: 1px solid rgba(255,255,255,.05);
+  padding: 10px 24px;
+  display: flex; align-items: center; gap: 12px;
+  z-index: 100;
+}
+#sticky-tags { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.sticky-tag { font-size: .75rem; color: #d45454; border: 1px solid rgba(212,84,84,.25); padding: 3px 10px; }
+#sticky-copy {
+  padding: 7px 18px;
+  border: 1px solid rgba(109,171,122,.3);
+  background: transparent; color: #6dab7a;
+  font-size: .75rem; letter-spacing: 2px;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  transition: all .2s; flex-shrink: 0;
+}
+#sticky-copy:hover { background: rgba(109,171,122,.08); }
+#sticky-empty { font-size: .8rem; color: #3a3836; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>🎲 Suno Style 產生器</h1>
+  <p class="subtitle">點選關鍵詞，組合你的風格提示詞 · 或按「試試好手氣」隨機生成</p>
+
+  <!-- 曲風 -->
+  <div class="section" data-color="red" data-key="genre">
+    <div class="section-title">曲風 Genre</div>
+    <div class="tags">
+      <button class="tag" data-val="Chinese Traditional">中國古風</button>
+      <button class="tag" data-val="J-pop">日系流行</button>
+      <button class="tag" data-val="K-pop">韓系流行</button>
+      <button class="tag" data-val="C-pop">華語流行</button>
+      <button class="tag" data-val="EDM">EDM 電音</button>
+      <button class="tag" data-val="Lo-fi Hip Hop">Lo-fi</button>
+      <button class="tag" data-val="Folk">民謠</button>
+      <button class="tag" data-val="Dark Rock">暗黑搖滾</button>
+      <button class="tag" data-val="R&B">R&B</button>
+      <button class="tag" data-val="Trap">Trap</button>
+      <button class="tag" data-val="Trance">Trance</button>
+      <button class="tag" data-val="Deep House">Deep House</button>
+      <button class="tag" data-val="Jazz">爵士</button>
+      <button class="tag" data-val="Classical">古典</button>
+      <button class="tag" data-val="Opera">歌劇</button>
+      <button class="tag" data-val="Anime OST">動漫 OST</button>
+      <button class="tag" data-val="Epic Orchestral">史詩管弦</button>
+      <button class="tag" data-val="Cinematic">電影配樂</button>
+      <button class="tag" data-val="Bossa Nova">Bossa Nova</button>
+      <button class="tag" data-val="Metal">金屬</button>
+    </div>
+  </div>
+
+  <!-- 中西日樂器 -->
+  <div class="section" data-color="gold" data-key="instrument">
+    <div class="section-title">樂器 Instruments</div>
+    <div class="tags">
+      <button class="tag" data-val="guzheng">古箏</button>
+      <button class="tag" data-val="pipa">琵琶</button>
+      <button class="tag" data-val="erhu">二胡</button>
+      <button class="tag" data-val="dizi">笛子</button>
+      <button class="tag" data-val="xiao">簫</button>
+      <button class="tag" data-val="suona">嗩吶</button>
+      <button class="tag" data-val="yangqin">揚琴</button>
+      <button class="tag" data-val="taiko drum">太鼓</button>
+      <button class="tag" data-val="shamisen">三味線</button>
+      <button class="tag" data-val="koto">琴（日式）</button>
+      <button class="tag" data-val="piano">鋼琴</button>
+      <button class="tag" data-val="guitar">吉他</button>
+      <button class="tag" data-val="electric guitar">電吉他</button>
+      <button class="tag" data-val="bass">貝斯</button>
+      <button class="tag" data-val="violin">小提琴</button>
+      <button class="tag" data-val="cello">大提琴</button>
+      <button class="tag" data-val="strings">弦樂組</button>
+      <button class="tag" data-val="trumpet">小號</button>
+      <button class="tag" data-val="saxophone">薩克斯風</button>
+      <button class="tag" data-val="flute">長笛</button>
+      <button class="tag" data-val="drums">鼓組</button>
+      <button class="tag" data-val="synth">合成器</button>
+      <button class="tag" data-val="epic choir">史詩合唱</button>
+    </div>
+  </div>
+
+  <!-- 速度 -->
+  <div class="section" data-color="blue" data-key="tempo">
+    <div class="section-title">速度 Tempo</div>
+    <div class="tags">
+      <button class="tag" data-val="60 BPM">60 BPM 緩慢</button>
+      <button class="tag" data-val="80 BPM">80 BPM 舒緩</button>
+      <button class="tag" data-val="95 BPM">95 BPM 中速</button>
+      <button class="tag" data-val="120 BPM">120 BPM 輕快</button>
+      <button class="tag" data-val="130 BPM">130 BPM 快速</button>
+      <button class="tag" data-val="140 BPM">140 BPM 激烈</button>
+    </div>
+  </div>
+
+  <!-- 氛圍 -->
+  <div class="section" data-color="purple" data-key="mood">
+    <div class="section-title">氛圍 Mood</div>
+    <div class="tags">
+      <button class="tag" data-val="ethereal">空靈</button>
+      <button class="tag" data-val="melancholic">憂傷</button>
+      <button class="tag" data-val="epic">史詩</button>
+      <button class="tag" data-val="dark">黑暗</button>
+      <button class="tag" data-val="uplifting">激勵</button>
+      <button class="tag" data-val="romantic">浪漫</button>
+      <button class="tag" data-val="mysterious">神秘</button>
+      <button class="tag" data-val="rebellious">反叛</button>
+      <button class="tag" data-val="peaceful">平靜</button>
+      <button class="tag" data-val="sultry">魅惑</button>
+      <button class="tag" data-val="groovy">律動</button>
+      <button class="tag" data-val="cinematic">電影感</button>
+      <button class="tag" data-val="nostalgic">懷舊</button>
+      <button class="tag" data-val="powerful">磅礴</button>
+    </div>
+  </div>
+
+  <!-- 人聲 -->
+  <div class="section" data-color="green" data-key="vocal">
+    <div class="section-title">人聲 Vocals</div>
+    <div class="tags">
+      <button class="tag" data-val="female vocal">女聲</button>
+      <button class="tag" data-val="male vocal">男聲</button>
+      <button class="tag" data-val="duet">男女對唱</button>
+      <button class="tag" data-val="soprano">女高音</button>
+      <button class="tag" data-val="deep male vocal">低沉男聲</button>
+      <button class="tag" data-val="breathy female vocal">氣聲女聲</button>
+      <button class="tag" data-val="seductive female vocal">魅惑女聲</button>
+      <button class="tag" data-val="powerful female vocal">爆發力女聲</button>
+      <button class="tag" data-val="male vocal rap">男聲說唱</button>
+      <button class="tag" data-val="chinese opera vocals">戲腔</button>
+      <button class="tag" data-val="no vocal, instrumental">純演奏（無人聲）</button>
+    </div>
+  </div>
+
+  <!-- 語言 -->
+  <div class="section" data-color="red" data-key="language">
+    <div class="section-title">語言 Language</div>
+    <div class="tags">
+      <button class="tag" data-val="Mandarin Chinese">國語</button>
+      <button class="tag" data-val="Cantonese">粵語</button>
+      <button class="tag" data-val="Japanese">日語</button>
+      <button class="tag" data-val="English">英語</button>
+    </div>
+  </div>
+
+  <button class="lucky-btn" onclick="luckyDraw()">🎲 試試好手氣 — 隨機組合</button>
+
+  <!-- 結果區 -->
+  <div id="result-box">
+    <div class="result-label">已選取的關鍵詞</div>
+    <div id="result-tags"></div>
+    <div id="result-text"></div>
+    <button class="copy-btn" onclick="copyResult()">複製提示詞</button>
+  </div>
+
+</div><!-- /container -->
+
+<!-- 底部懸浮列 -->
+<div id="sticky">
+  <div id="sticky-tags"><span id="sticky-empty">尚未選取任何關鍵詞</span></div>
+  <button id="sticky-copy" onclick="copyResult()">複製</button>
+</div>
+
+<script>
+const selected = {};
+
+// 每個 section 的 active class 對應顏色
+const colorMap = {
+  red: 'active',
+  gold: 'active',
+  blue: 'active',
+  purple: 'active',
+  green: 'active'
+};
+
+document.querySelectorAll('.tag').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const section = btn.closest('.section');
+    const key = section.dataset.key;
+    const val = btn.dataset.val;
+
+    if (btn.classList.contains('active')) {
+      btn.classList.remove('active');
+      if (selected[key]) {
+        selected[key] = selected[key].filter(v => v !== val);
+        if (selected[key].length === 0) delete selected[key];
+      }
+    } else {
+      btn.classList.add('active');
+      if (!selected[key]) selected[key] = [];
+      selected[key].push(val);
+    }
+    updateResult();
+  });
+});
+
+function getAllSelected() {
+  const all = [];
+  ['genre','instrument','tempo','mood','vocal','language'].forEach(k => {
+    if (selected[k]) all.push(...selected[k]);
+  });
+  return all;
+}
+
+function updateResult() {
+  const all = getAllSelected();
+  const resultBox = document.getElementById('result-box');
+  const resultTags = document.getElementById('result-tags');
+  const resultText = document.getElementById('result-text');
+  const stickyTags = document.getElementById('sticky-tags');
+  const stickyEmpty = document.getElementById('sticky-empty');
+
+  if (all.length === 0) {
+    resultBox.classList.remove('show');
+    stickyTags.innerHTML = '<span id="sticky-empty">尚未選取任何關鍵詞</span>';
+    return;
+  }
+
+  resultBox.classList.add('show');
+  resultTags.innerHTML = all.map(v => `<span class="result-tag">${v}</span>`).join('');
+  resultText.textContent = all.join(', ');
+
+  stickyTags.innerHTML = all.map(v => `<span class="sticky-tag">${v}</span>`).join('');
+}
+
+function copyResult() {
+  const all = getAllSelected();
+  if (all.length === 0) return;
+  navigator.clipboard.writeText(all.join(', ')).then(() => {
+    const btns = document.querySelectorAll('.copy-btn, #sticky-copy');
+    btns.forEach(b => { b.textContent = '✓ 已複製'; });
+    setTimeout(() => {
+      document.querySelectorAll('.copy-btn').forEach(b => b.textContent = '複製提示詞');
+      document.getElementById('sticky-copy').textContent = '複製';
+    }, 2000);
+  });
+}
+
+// 隨機池
+const pool = {
+  genre: ['Chinese Traditional','J-pop','C-pop','EDM','Lo-fi Hip Hop','Folk','Dark Rock','R&B','Trap','Trance','Deep House','Epic Orchestral','Cinematic'],
+  instrument: ['guzheng','pipa','erhu','dizi','suona','piano','violin','strings','synth','epic choir','taiko drum'],
+  tempo: ['60 BPM','80 BPM','95 BPM','120 BPM','130 BPM','140 BPM'],
+  mood: ['ethereal','melancholic','epic','dark','uplifting','mysterious','rebellious','sultry','groovy','powerful'],
+  vocal: ['female vocal','male vocal','breathy female vocal','powerful female vocal','chinese opera vocals','no vocal, instrumental'],
+  language: ['Mandarin Chinese','Japanese','English']
+};
+
+function luckyDraw() {
+  // 清除所有選取
+  document.querySelectorAll('.tag.active').forEach(t => t.classList.remove('active'));
+  Object.keys(selected).forEach(k => delete selected[k]);
+
+  // 隨機選
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const picks = {
+    genre: [pick(pool.genre)],
+    instrument: [pick(pool.instrument), pick(pool.instrument)].filter((v,i,a) => a.indexOf(v) === i),
+    tempo: [pick(pool.tempo)],
+    mood: [pick(pool.mood)],
+    vocal: [pick(pool.vocal)],
+    language: [pick(pool.language)]
+  };
+
+  Object.entries(picks).forEach(([key, vals]) => {
+    selected[key] = vals;
+    vals.forEach(val => {
+      const btn = document.querySelector(`.tag[data-val="${val}"]`);
+      if (btn) btn.classList.add('active');
+    });
+  });
+
+  updateResult();
+  document.getElementById('result-box').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
