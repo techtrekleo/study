@@ -432,6 +432,17 @@ tr:hover td { background: rgba(255,255,255,.015); }
 /* ═══════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════ */
+/* 自適應：限制 slide 高度並允許內部捲動 */
+.slide {
+  max-height: calc(100vh - 52px - 48px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212,84,84,.3) transparent;
+}
+.slide::-webkit-scrollbar { width: 4px; }
+.slide::-webkit-scrollbar-track { background: transparent; }
+.slide::-webkit-scrollbar-thumb { background: rgba(212,84,84,.3); border-radius: 2px; }
+
 @media (max-width: 768px) {
   html { font-size: 14px; }
   .slide { padding: 28px 22px; }
@@ -439,6 +450,14 @@ tr:hover td { background: rgba(255,255,255,.015); }
   .flow { gap: 6px; }
   .cover h1 { font-size: 2.8rem; }
   #now-playing { height: 44px; padding: 0 16px; }
+}
+
+@media (max-height: 700px) {
+  html { font-size: 15px; }
+}
+
+@media (max-height: 600px) {
+  html { font-size: 13px; }
 }
 </style>
 </head>
